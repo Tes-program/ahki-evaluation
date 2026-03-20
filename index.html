@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yahshud Chatbot Evaluation Document</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f5f3; --text: #1a1a18; --text2: #5f5e5a;
+    --text3: #888780; --border: rgba(0,0,0,0.12); --radius: 8px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1a1a18; --bg2: #2c2c2a; --text: #e8e6de; --text2: #9c9a92; --text3: #666460; --border: rgba(255,255,255,0.1); }
+  }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; padding: 24px; }
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+  select, input { font-size: 13px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg2); color: var(--text); outline: none; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+  .cat-Platform    { background: #E1F5EE; color: #085041; }
+  .cat-Sharia      { background: #EEEDFE; color: #26215C; }
+  .cat-Portfolio   { background: #E6F1FB; color: #042C53; }
+  .cat-Process     { background: #EAF3DE; color: #173404; }
+  .cat-Risk        { background: #FAEEDA; color: #412402; }
+  .cat-Rewards     { background: #FBEAF0; color: #4B1528; }
+  .cat-Boundary    { background: #FCEBEB; color: #501313; }
+  .cat-Conversational { background: #F1EFE8; color: #2C2C2A; }
+  .diff-Easy   { background: #EAF3DE; color: #27500A; }
+  .diff-Medium { background: #FAEEDA; color: #633806; }
+  .diff-Hard   { background: #FCEBEB; color: #791F1F; }
+  .tbl-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { text-align: left; padding: 10px 12px; font-weight: 500; font-size: 12px; color: var(--text2); border-bottom: 1px solid var(--border); background: var(--bg2); position: sticky; top: 0; z-index: 1; }
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:hover { background: var(--bg2); }
+  td { padding: 10px 12px; vertical-align: top; line-height: 1.5; }
+  td.id   { color: var(--text3); font-size: 11px; font-weight: 500; white-space: nowrap; }
+  td.prompt { max-width: 240px; }
+  td.expected { max-width: 260px; font-size: 12px; color: var(--text2); }
+  td.actual, td.pass, td.notes { min-width: 100px; font-size: 12px; color: var(--text3); font-style: italic; }
+  .stat { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+  .btn { font-size: 12px; padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg2); color: var(--text); cursor: pointer; }
+  .btn:hover { background: var(--bg); }
+  .legend { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<h1>Yahshud Chatbot — Prompt Evaluation Document</h1>
+<p class="subtitle">50 structured test prompts for the Yahshud / RAIN Islamic investment chatbot. Fill in Actual Response, Pass/Fail, and Notes after each test run.</p>
+
+<div class="legend">
+  <span class="badge cat-Platform">Platform Basics</span>
+  <span class="badge cat-Sharia">Sharia &amp; Islamic Finance</span>
+  <span class="badge cat-Portfolio">Portfolio &amp; Personalization</span>
+  <span class="badge cat-Process">Investment Process</span>
+  <span class="badge cat-Risk">Risk &amp; Disclaimers</span>
+  <span class="badge cat-Rewards">Rewards &amp; Loyalty</span>
+  <span class="badge cat-Boundary">Boundary &amp; Edge Cases</span>
+  <span class="badge cat-Conversational">Conversational Flow</span>
+</div>
+
+<div class="controls">
+  <input id="srch" placeholder="Search prompts..." oninput="filterTable()" style="width:200px">
+  <select id="cat-filter" onchange="filterTable()">
+    <option value="">All categories</option>
+    <option>Platform Basics</option>
+    <option>Sharia &amp; Islamic Finance</option>
+    <option>Portfolio &amp; Personalization</option>
+    <option>Investment Process</option>
+    <option>Risk &amp; Disclaimers</option>
+    <option>Rewards &amp; Loyalty</option>
+    <option>Boundary &amp; Edge Cases</option>
+    <option>Conversational Flow</option>
+  </select>
+  <select id="diff-filter" onchange="filterTable()">
+    <option value="">All difficulties</option>
+    <option>Easy</option>
+    <option>Medium</option>
+    <option>Hard</option>
+  </select>
+  <button class="btn" onclick="exportCSV()">Export CSV</button>
+</div>
+<div class="stat" id="stat">Showing 50 of 50 questions</div>
+
+<div class="tbl-wrap">
+<table id="eval-table">
+<thead>
+<tr>
+  <th>ID</th><th>Category</th><th>Prompt</th><th>Expected Response (Summary)</th>
+  <th>Actual Response</th><th>Pass / Fail</th><th>Difficulty</th><th>Notes</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+
+<script>
+const catKey = {
+  "Platform Basics":"Platform","Sharia & Islamic Finance":"Sharia",
+  "Portfolio & Personalization":"Portfolio","Investment Process":"Process",
+  "Risk & Disclaimers":"Risk","Rewards & Loyalty":"Rewards",
+  "Boundary & Edge Cases":"Boundary","Conversational Flow":"Conversational"
+};
+const data = [
+  {id:"Q01",cat:"Platform Basics",prompt:"What is RAIN?",expected:"Explain RAIN = Real Estate Investment Notes, fractional real estate ownership, Mudarabah-based, quarterly profits, 1-year term.",diff:"Easy"},
+  {id:"Q02",cat:"Platform Basics",prompt:"What does Yahshud do?",expected:"Describe Yahshud as the issuer/manager of RAIN offerings — handles property acquisition, management, Sharia compliance, and investor distributions.",diff:"Easy"},
+  {id:"Q03",cat:"Platform Basics",prompt:"How does RAIN differ from buying a house directly?",expected:"Highlight lower minimums, fractional ownership, professional management, no direct landlord responsibility, quarterly income instead of lump sum.",diff:"Medium"},
+  {id:"Q04",cat:"Platform Basics",prompt:"What types of properties are included in RAIN offerings?",expected:"Residential and commercial: multi-family apartments, office buildings, retail spaces. Plans to expand asset classes.",diff:"Easy"},
+  {id:"Q05",cat:"Platform Basics",prompt:"How long does a RAIN investment last?",expected:"Each RAIN offering has a 1-year investment period. Principal redeemed + final profit at maturity.",diff:"Easy"},
+  {id:"Q06",cat:"Platform Basics",prompt:"When do I receive profit payments?",expected:"Quarterly distributions deposited to your bank account on dates in the offering prospectus.",diff:"Easy"},
+  {id:"Q07",cat:"Platform Basics",prompt:"What is the minimum I can invest in RAIN?",expected:"Minimums vary per issuance — user should check the specific term sheet for the current offering.",diff:"Easy"},
+  {id:"Q08",cat:"Platform Basics",prompt:"Can I sell my RAIN investment before the 1-year term ends?",expected:"Yes — Yahshud provides a secondary market. Note: secondary market is new and may have limited liquidity.",diff:"Medium"},
+  {id:"Q09",cat:"Platform Basics",prompt:"How do I sign up and start investing on the Yahshud platform?",expected:"Direct to the website (www.yahshud.com), complete KYC, browse available issuances, review term sheet, invest online similar to buying stocks.",diff:"Easy"},
+  {id:"Q10",cat:"Platform Basics",prompt:"How is my money protected if Yahshud faces financial difficulty?",expected:"Investments are asset-backed (real properties). Explain risk mitigation: due diligence, diversification, active market-making. Add appropriate disclaimer.",diff:"Hard"},
+  {id:"Q11",cat:"Sharia & Islamic Finance",prompt:"Is RAIN Sharia-compliant?",expected:"Yes — structured on Mudarabah principle. No riba, no gharar, halal assets only, profit from real economic activity (property ownership).",diff:"Easy"},
+  {id:"Q12",cat:"Sharia & Islamic Finance",prompt:"What is Mudarabah and how does it apply to RAIN?",expected:"Mudarabah = profit-sharing partnership. Yahshud acts as Mudarib (manager), investors as Rab al-Mal (capital providers). Profit shared; losses on capital side except in case of negligence.",diff:"Medium"},
+  {id:"Q13",cat:"Sharia & Islamic Finance",prompt:"Is this investment halal? I want to avoid haram income.",expected:"Affirm Sharia compliance: no riba, real asset-backed, halal properties, Mudarabah structure. Recommend consulting a personal Islamic finance scholar for individual certainty.",diff:"Medium"},
+  {id:"Q14",cat:"Sharia & Islamic Finance",prompt:"Does RAIN involve any interest (riba)?",expected:"No. Returns come from rental income and property sale profits — not interest. Clearly distinguish profit-sharing from riba.",diff:"Easy"},
+  {id:"Q15",cat:"Sharia & Islamic Finance",prompt:"What is Gharar and does RAIN have it?",expected:"Gharar = excessive uncertainty. RAIN mitigates this via clear terms, real asset backing, transparent pricing, detailed offering documents.",diff:"Medium"},
+  {id:"Q16",cat:"Sharia & Islamic Finance",prompt:"Is RAIN the same as a Sukuk?",expected:"RAIN combines features of Sukuk and Commercial Paper. It operates on Mudarabah — a type of Sukuk structure — but is specifically Yahshud's proprietary product.",diff:"Medium"},
+  {id:"Q17",cat:"Sharia & Islamic Finance",prompt:"Can I pay Zakat on my RAIN investment through the platform?",expected:"Yes — Zakat can be automatically deducted based on user preference. Explain how to set this up in user settings.",diff:"Medium"},
+  {id:"Q18",cat:"Sharia & Islamic Finance",prompt:"What happens to the profit if the property is leased to a business that sells alcohol?",expected:"Yahshud only invests in halal assets. Properties leased to non-halal businesses are excluded. This is a core Sharia screening principle.",diff:"Hard"},
+  {id:"Q19",cat:"Sharia & Islamic Finance",prompt:"Is there a Sharia board overseeing the RAIN product?",expected:"Acknowledge Yahshud's Sharia compliance commitment. If Sharia board details are not in context, direct user to info@yahshud.com or website for formal Sharia audit info.",diff:"Hard"},
+  {id:"Q20",cat:"Sharia & Islamic Finance",prompt:"I heard conventional real estate funds are also profitable — why should I choose RAIN over them?",expected:"Respect user's autonomy. Highlight RAIN's Sharia compliance, profit-sharing (not interest), real asset backing, and transparency. Note that conventional funds may carry riba — user should decide based on their principles.",diff:"Hard"},
+  {id:"Q21",cat:"Portfolio & Personalization",prompt:"What is my current portfolio worth?",expected:"Retrieve user's active investment data, sum holdings, state total clearly. Mention upcoming redemptions if applicable.",diff:"Medium"},
+  {id:"Q22",cat:"Portfolio & Personalization",prompt:"How much profit have I earned so far?",expected:"Pull actual profit distributions from user portfolio data. Break down by issuance if multiple.",diff:"Medium"},
+  {id:"Q23",cat:"Portfolio & Personalization",prompt:"Which of my investments is performing best?",expected:"Compare profit yield % across user's active holdings. Name the top-performing issuance clearly.",diff:"Medium"},
+  {id:"Q24",cat:"Portfolio & Personalization",prompt:"When is my next profit payment and how much will it be?",expected:"Identify next distribution date from user's investments. Calculate expected amount based on investment size and expected annual return.",diff:"Medium"},
+  {id:"Q25",cat:"Portfolio & Personalization",prompt:"I want to invest ₦500,000 — what would you recommend?",expected:"Identify available issuances that meet the ₦500,000 threshold. Match to user's risk profile if available. Explain why the recommendation fits. Add disclaimer.",diff:"Hard"},
+  {id:"Q26",cat:"Portfolio & Personalization",prompt:"Am I diversified enough across my current holdings?",expected:"Review user's portfolio distribution. If concentrated in one asset type or issuance, suggest diversification. Reference available offerings.",diff:"Hard"},
+  {id:"Q27",cat:"Portfolio & Personalization",prompt:"I last invested 6 months ago. Has anything changed on the platform?",expected:"Reference any new issuances, platform updates, or Raindrop rewards changes. If data unavailable, direct to website and acknowledge limitation gracefully.",diff:"Hard"},
+  {id:"Q28",cat:"Portfolio & Personalization",prompt:"What is my Raindrop tier and what benefits do I get?",expected:"State user's current tier (Bronze/Silver/Gold/Platinum/Diamond). List tier-specific benefits. Suggest how to move to next tier if applicable.",diff:"Medium"},
+  {id:"Q29",cat:"Investment Process",prompt:"How do I invest in a new RAIN issuance?",expected:"Step-by-step: browse issuances → review term sheet → confirm investment amount → complete transaction online. Mention minimum investment check.",diff:"Easy"},
+  {id:"Q30",cat:"Investment Process",prompt:"How do I redeem my investment at maturity?",expected:"At end of 1-year term, principal + final profit is deposited to bank account on specified maturity date. No action required from investor.",diff:"Easy"},
+  {id:"Q31",cat:"Investment Process",prompt:"How do I sell my RAIN on the secondary market?",expected:"Explain how to list on Yahshud's secondary market. Mention liquidity risk — market is new and may have limited activity.",diff:"Medium"},
+  {id:"Q32",cat:"Investment Process",prompt:"Can I invest in multiple RAIN issuances at the same time?",expected:"Yes — users can hold multiple issuances simultaneously for diversification. Portfolio management is tracked on the platform.",diff:"Easy"},
+  {id:"Q33",cat:"Investment Process",prompt:"What documents do I need to complete KYC?",expected:"Guide user through KYC requirements. If not in direct context, direct to www.yahshud.com or investor relations at info@yahshud.com.",diff:"Medium"},
+  {id:"Q34",cat:"Investment Process",prompt:"How are profits calculated — is it a fixed percentage or variable?",expected:"Expected annual return is specified in the offering term sheet per issuance. Profits come from real estate activity (rent + sale), so returns can vary. Quarterly distributions are proportional to investment size.",diff:"Medium"},
+  {id:"Q35",cat:"Risk & Disclaimers",prompt:"What are the risks of investing in RAIN?",expected:"Cover: market volatility, liquidity risk on secondary market, property-specific risks (vacancies, repairs, legal). State Yahshud's mitigations. Include past performance disclaimer.",diff:"Easy"},
+  {id:"Q36",cat:"Risk & Disclaimers",prompt:"What happens if the property in my RAIN investment is damaged?",expected:"Yahshud handles property management. Explain that this is a property-specific risk, mitigated by due diligence and insurance (if applicable). Suggest checking issuance prospectus.",diff:"Hard"},
+  {id:"Q37",cat:"Risk & Disclaimers",prompt:"Can I lose my principal?",expected:"Honest answer: principal is at risk as with any investment — market volatility and property-specific risks apply. Yahshud mitigates via diversification and due diligence. No guarantee. Include disclaimer.",diff:"Hard"},
+  {id:"Q38",cat:"Risk & Disclaimers",prompt:"Is RAIN regulated? Is it safe?",expected:"Address regulatory status (direct to Yahshud/website for formal details). Explain asset-backed structure as a safety measure. Include risk disclaimers.",diff:"Hard"},
+  {id:"Q39",cat:"Risk & Disclaimers",prompt:"What is Yahshud's track record?",expected:"Strong history of successful real estate investments, focus on social and financial returns. Experienced team in acquisition, management, financing. Disclaimer: past performance doesn't guarantee future results.",diff:"Medium"},
+  {id:"Q40",cat:"Risk & Disclaimers",prompt:"What if Yahshud shuts down while I have active investments?",expected:"Explain asset-backed protection — real properties are the underlying collateral. Direct to formal documentation/terms for liquidation procedures. Acknowledge this is an important risk to understand.",diff:"Hard"},
+  {id:"Q41",cat:"Rewards & Loyalty",prompt:"How do I earn Raindrops?",expected:"Raindrops earned through investments and platform activities. Explain tiers (Bronze → Diamond) and how activity unlocks higher tiers.",diff:"Easy"},
+  {id:"Q42",cat:"Rewards & Loyalty",prompt:"What can I redeem my Raindrops for?",expected:"Exclusive offers and benefits. Higher tiers unlock better rewards and priority access to new issuances. Direct to platform for current reward catalogue.",diff:"Easy"},
+  {id:"Q43",cat:"Rewards & Loyalty",prompt:"How many Raindrops do I need to reach Gold tier?",expected:"State requirement if available in user data. If not, direct to Raindrop program details on platform. Mention current user's tier for context.",diff:"Medium"},
+  {id:"Q44",cat:"Boundary & Edge Cases",prompt:"Can you help me invest in stocks or crypto?",expected:"Politely decline — Yahshud advisor is scoped to RAIN and real estate investment products. Redirect to what the chatbot can help with.",diff:"Easy"},
+  {id:"Q45",cat:"Boundary & Edge Cases",prompt:"I want guaranteed returns. Can you promise me 20% per year?",expected:"Clearly decline to make guarantees. Explain profit-sharing nature of RAIN (variable returns tied to property performance). Refer to expected returns in offering documents.",diff:"Hard"},
+  {id:"Q46",cat:"Boundary & Edge Cases",prompt:"My friend told me RAIN is a scam. Is that true?",expected:"Respond calmly and factually. Explain the asset-backed structure, Sharia compliance, Yahshud's track record. Offer to share documentation. Do not be dismissive of the concern.",diff:"Hard"},
+  {id:"Q47",cat:"Boundary & Edge Cases",prompt:"What is the current price of gold?",expected:"Out of scope. Politely explain that the advisor focuses on RAIN and Yahshud platform. Offer to help with investment-related questions.",diff:"Easy"},
+  {id:"Q48",cat:"Boundary & Edge Cases",prompt:"I am not Muslim — can I still invest in RAIN?",expected:"Yes! RAIN is open to all investors. Sharia compliance is a feature (ethical, transparent, asset-backed) that benefits all investors regardless of faith.",diff:"Medium"},
+  {id:"Q49",cat:"Conversational Flow",prompt:"Assalamu Alaikum",expected:"Respond with 'Wa Alaikum Assalam' warmly. Address user by first name. Offer to assist with their investment journey on Yahshud.",diff:"Easy"},
+  {id:"Q50",cat:"Conversational Flow",prompt:"I'm overwhelmed by all the options. I don't know where to start.",expected:"Empathetic response. Simplify: ask about investment goal, available budget, and risk comfort. Guide step-by-step. Avoid jargon. Reassure.",diff:"Medium"},
+];
+
+function catBadge(cat){const k=catKey[cat]||"Platform";return `<span class="badge cat-${k}">${cat}</span>`}
+function diffBadge(d){return `<span class="badge diff-${d}">${d}</span>`}
+
+function render(rows){
+  const tb=document.getElementById('tbody');
+  tb.innerHTML=rows.map(r=>`<tr>
+    <td class="id">${r.id}</td>
+    <td>${catBadge(r.cat)}</td>
+    <td class="prompt">${r.prompt}</td>
+    <td class="expected">${r.expected}</td>
+    <td class="actual" contenteditable="true" style="min-width:120px;outline:none"></td>
+    <td class="pass" contenteditable="true" style="min-width:70px;outline:none"></td>
+    <td>${diffBadge(r.diff)}</td>
+    <td class="notes" contenteditable="true" style="min-width:110px;outline:none"></td>
+  </tr>`).join('');
+  document.getElementById('stat').textContent=`Showing ${rows.length} of ${data.length} questions`;
+}
+
+function filterTable(){
+  const q=document.getElementById('srch').value.toLowerCase();
+  const c=document.getElementById('cat-filter').value.replace('&amp;','&');
+  const d=document.getElementById('diff-filter').value;
+  const filtered=data.filter(r=>{
+    const matchQ=!q||r.prompt.toLowerCase().includes(q)||r.expected.toLowerCase().includes(q);
+    const matchC=!c||r.cat===c;
+    const matchD=!d||r.diff===d;
+    return matchQ&&matchC&&matchD;
+  });
+  render(filtered);
+}
+
+function exportCSV(){
+  const headers=["ID","Category","Prompt","Expected Response","Actual Response","Pass/Fail","Difficulty","Notes"];
+  const rows=data.map(r=>[r.id,`"${r.cat}"`,`"${r.prompt}"`,`"${r.expected}"`,`""`,`""`,r.diff,`""`].join(','));
+  const csv=[headers.join(','),...rows].join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='yahshud_chatbot_eval.csv';
+  a.click();
+}
+
+render(data);
+</script>
+</body>
+</html>
